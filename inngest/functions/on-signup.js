@@ -1,6 +1,8 @@
 import { NonRetriableError } from "inngest";
 import {inngest} from "../client";
 import User from "/models/user";
+
+
 export const onSignup=inngest.createFunction(
     {id:"on-user-signup"},
     {event:"user/signup"},
@@ -34,6 +36,5 @@ export const onSignup=inngest.createFunction(
             console.error("❌Error in onSignup function:",error.message);
             return {success:false};
         }
-
     }
 ); 
