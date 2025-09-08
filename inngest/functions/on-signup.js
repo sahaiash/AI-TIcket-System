@@ -6,6 +6,7 @@ export const onSignup=inngest.createFunction(
     {event:"user/signup"},
     async({event,step})=>{
         try{
+            // pipeline-1
             const {email,name}=event.data; 
             await step.run("send-activation-email",async()=>{
                const userObject=awaitUser.findOne({email});
@@ -14,6 +15,7 @@ export const onSignup=inngest.createFunction(
                }
                return userObject;
             });
+            // pipeline-2
             await setp.run("send-welcome-email",async()=>{
                 const subject="Welcome to the Application";
                 const message=`Hello ${name},
