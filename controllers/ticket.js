@@ -42,7 +42,7 @@ export const getTickets=async(req,res)=>{
             tickets=await Ticket.find({}).populate("assignedTo",["email","_id"])
             .sort({createdAt:-1});
         }else{
-            tickets=await Ticket.find({createdBy:user._id})
+            await Ticket.find({createdBy:user._id})
                 .select("title description status createdAt")
                 .sort({createdAt:-1});
         }
@@ -56,6 +56,27 @@ export const getTickets=async(req,res)=>{
 
 // controller for getting a single ticket
 export const getTicket=async(req,res)=>{
+    try{
+        const user=req.user;
+        let ticket;
+        if(user.role!="user"){
+            ticket=await Ticket.findById(req.params.id)
+            .populate("assignedTo",["email","_id"]);
+        }else{
+            ticket=await Ticket.findOne({
+                createdBy:user._id,
+                _id:req.params.id,
 
+            }).select("title description status createdAt");
+        }
+        if(!ticket){
+            return res.status(404).json({error:"Ticket not found"});
+        }
+        return res.status(200).json({ticket});
+    }catch(err){
+        console.log("❌Error in fetching ticket:",err.message);
+        return res.status(500).json({message:"Internal server erorr"});
+    }
 }
+
 
