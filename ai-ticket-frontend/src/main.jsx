@@ -7,25 +7,38 @@ import Tickets from './pages/tickets.jsx'
 import Signup from './pages/signup.jsx'
 import Login from './pages/login.jsx'
 import Admin from './pages/admin.jsx'
+import Landing from './pages/landing.jsx'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
     {/* this is the main routes that renders the app */}
     <Routes>
-      {/* this is the home page */}
+      {/* Landing page - accessible to everyone */}
+      <Route path='/' element={<Landing />} />
+      
+      {/* Dashboard - protected route */}
       <Route
-      path='/'
-      element={
-        <CheckAuth protected={true}>
-          <Tickets/>
-        </CheckAuth>
-      }
-      />
-      {/* this is the ticket page */}
-      <Route
-        path="ticket/:id"
+        path='/dashboard'
         element={
-          <CheckAuth protected={true}>
+          <CheckAuth protectedRoute={true}>
+            <Tickets/>
+          </CheckAuth>
+        }
+      />
+      {/* Create new ticket page */}
+      <Route
+        path="/ticket"
+        element={
+          <CheckAuth protectedRoute={true}>
+            <Ticket/>
+          </CheckAuth>
+        }
+      />
+      {/* View ticket details page */}
+      <Route
+        path="/ticket/:id"
+        element={
+          <CheckAuth protectedRoute={true}>
             <Ticket/>
           </CheckAuth>
         }
@@ -34,7 +47,7 @@ createRoot(document.getElementById('root')).render(
       <Route
         path="/signup"
         element={
-          <CheckAuth protected={false}>
+          <CheckAuth protectedRoute={false}>
             <Signup/>
           </CheckAuth>
         }
@@ -43,7 +56,7 @@ createRoot(document.getElementById('root')).render(
       <Route
         path="/login"
         element={
-          <CheckAuth protected={false}>
+          <CheckAuth protectedRoute={false}>
             <Login/>
           </CheckAuth>
         }
@@ -52,7 +65,7 @@ createRoot(document.getElementById('root')).render(
       <Route
         path="/admin"
         element={
-          <CheckAuth protected={true}>
+          <CheckAuth protectedRoute={true}>
             <Admin/>
           </CheckAuth>
         }

@@ -18,13 +18,34 @@ export const onUserSignup = inngest.createFunction(
         return userObject;
       });
 
-      await setp.run("send-welcome-email", async () => {
-        const subject = `Welcome to the app`;
-        const message = `Hi,
-            \n\n
-            Thanks for signing up. We're glad to have you onboard!
-            `;
-        await sendMail(user.email, subject, message);
+      await step.run("send-welcome-email", async () => {
+        // Get admin email to use as sender
+        const adminUser = await User.findOne({ role: "admin" });
+        const adminEmail = adminUser ? adminUser.email : null;
+        
+        const subject = `Welcome to TicketFlow - Your Account is Ready!`;
+        const message = `Hello ${user.email.split('@')[0]},
+
+Welcome to TicketFlow! Your account has been successfully created.
+
+You can now:
+• Create support tickets for IT issues
+• Track the status of your requests
+• Receive updates on ticket progress
+• Access our AI-powered support system
+
+Getting Started:
+1. Log into TicketFlow at: http://localhost:5174
+2. Create your first support ticket
+3. Track your ticket progress in the dashboard
+
+If you have any questions, feel free to reach out to our support team.
+
+Best regards,
+TicketFlow Admin Team`;
+        
+        await sendMail(user.email, subject, message, adminEmail);
+        console.log("✅ Welcome email sent to:", user.email);
       });
 
       return { success: true };

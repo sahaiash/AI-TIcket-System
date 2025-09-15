@@ -17,7 +17,7 @@ function CheckAuth({children,protectedRoute}) {
       }
     }else{
       if(token){
-        navigate("/")
+        navigate("/dashboard")
       }else{
         setLoading(false);
       }

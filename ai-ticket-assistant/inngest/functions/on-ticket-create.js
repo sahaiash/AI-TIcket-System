@@ -15,7 +15,7 @@ export const onTicketCreated = inngest.createFunction(
       //fetch ticket from DB
       const ticket = await step.run("fetch-ticket", async () => {
         const ticketObject = await Ticket.findById(ticketId);
-        if (!ticket) {
+        if (!ticketObject) {
           throw new NonRetriableError("Ticket not found");
         }
         return ticketObject;
@@ -25,11 +25,15 @@ export const onTicketCreated = inngest.createFunction(
         await Ticket.findByIdAndUpdate(ticket._id, { status: "TODO" });
       });
 
-      const aiResponse = await analyzeTicket(ticket);
+      const aiResponse = await step.run("ai-analysis", async () => {
+        console.log("🤖 Running AI analysis for ticket:", ticket.title);
+        return await analyzeTicket(ticket);
+      });
 
-      const relatedskills = await step.run("ai-processing", async () => {
+      const relatedSkills = await step.run("ai-processing", async () => {
         let skills = [];
         if (aiResponse) {
+          console.log("✅ AI analysis successful, updating ticket with:", aiResponse);
           await Ticket.findByIdAndUpdate(ticket._id, {
             priority: !["low", "medium", "high"].includes(aiResponse.priority)
               ? "medium"
@@ -38,7 +42,17 @@ export const onTicketCreated = inngest.createFunction(
             status: "IN_PROGRESS",
             relatedSkills: aiResponse.relatedSkills,
           });
-          skills = aiResponse.relatedSkills;
+          skills = aiResponse.relatedSkills || [];
+        } else {
+          console.log("⚠️ AI analysis failed, using basic processing");
+          // Basic fallback processing
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            priority: "medium",
+            helpfulNotes: `Issue reported: ${ticket.description}. Please review and assist the user.`,
+            status: "IN_PROGRESS",
+            relatedSkills: ["Technical Support"],
+          });
+          skills = ["Technical Support"];
         }
         return skills;
       });
@@ -48,7 +62,7 @@ export const onTicketCreated = inngest.createFunction(
           role: "moderator",
           skills: {
             $elemMatch: {
-              $regex: relatedskills.join("|"),
+              $regex: relatedSkills.join("|"),
               $options: "i",
             },
           },
@@ -64,14 +78,39 @@ export const onTicketCreated = inngest.createFunction(
         return user;
       });
 
-      await setp.run("send-email-notification", async () => {
+      await step.run("send-email-notification", async () => {
         if (moderator) {
           const finalTicket = await Ticket.findById(ticket._id);
+          
+          // Get admin email to use as sender
+          const adminUser = await User.findOne({ role: "admin" });
+          const adminEmail = adminUser ? adminUser.email : null;
+          
           await sendMail(
             moderator.email,
-            "Ticket Assigned",
-            `A new ticket is assigned to you ${finalTicket.title}`
+            "New Ticket Assigned - TicketFlow",
+            `Hello ${moderator.email.split('@')[0]},
+
+A new support ticket has been assigned to you:
+
+Title: ${finalTicket.title}
+Priority: ${finalTicket.priority || 'Medium'}
+Category: ${finalTicket.category || 'General'}
+Status: ${finalTicket.status}
+
+Description:
+${finalTicket.description}
+
+${finalTicket.helpfulNotes ? `AI Analysis Notes:
+${finalTicket.helpfulNotes}` : ''}
+
+Please log into TicketFlow to review and resolve this ticket.
+
+Best regards,
+TicketFlow Admin Team`,
+            adminEmail
           );
+          console.log("✅ Assignment email sent to:", moderator.email);
         }
       });
 
