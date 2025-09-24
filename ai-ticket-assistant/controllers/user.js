@@ -126,3 +126,21 @@ export const getUsers = async (req, res) => {
     res.status(500).json({ error: "Update failed", details: error.message });
   }
 };
+
+export const getAssignableUsers = async (req, res) => {
+  try {
+    // Only moderators and admins can assign tickets
+    if (req.user.role === "user") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // Get users who can be assigned tickets (moderators and admins)
+    const users = await User.find({ 
+      role: { $in: ["moderator", "admin"] } 
+    }).select("_id email role skills");
+    
+    return res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch assignable users", details: error.message });
+  }
+};

@@ -17,6 +17,17 @@ function CreateTicket() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [user, setUser] = useState(null);
+
+  // Get user info from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   // Fetch ticket data if in view mode
   useEffect(() => {
@@ -48,6 +59,31 @@ function CreateTicket() {
     fetchTicket();
     }
   }, [id, isViewMode]);
+
+  // Fetch assignable users if user is moderator or admin
+  useEffect(() => {
+    if (user && (user.role === 'moderator' || user.role === 'admin') && isViewMode) {
+      const fetchAssignableUsers = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/assignable-users`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const users = await response.json();
+            setAssignableUsers(users);
+          }
+        } catch (err) {
+          console.error("Failed to fetch assignable users:", err);
+        }
+      };
+
+      fetchAssignableUsers();
+    }
+  }, [user, isViewMode]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -101,6 +137,38 @@ function CreateTicket() {
       setLoading(false);
     }
   }
+
+  const handleUpdateTicket = async (updateData) => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTicketData(data.ticket);
+        setSuccess('Ticket updated successfully!');
+      } else {
+        setError(data.message || 'Failed to update ticket');
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      setError('Failed to update ticket: ' + error.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleDeleteTicket = async () => {
     if (!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
@@ -351,8 +419,74 @@ function CreateTicket() {
                   {ticketData.updatedAt && (
                     <p>Last updated: {new Date(ticketData.updatedAt).toLocaleDateString()} at {new Date(ticketData.updatedAt).toLocaleTimeString()}</p>
                   )}
+                  {ticketData.assignedTo && (
+                    <p>Assigned to: {ticketData.assignedTo.email}</p>
+                  )}
                 </div>
               </div>
+              
+              {/* Moderator/Admin Controls */}
+              {user && (user.role === 'moderator' || user.role === 'admin') && (
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
+                }}>
+                  <h4 style={{ color: '#60a5fa', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                    Moderator Controls
+                  </h4>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <select
+                      value={ticketData.status || ''}
+                      onChange={(e) => handleUpdateTicket({ status: e.target.value })}
+                      disabled={updating}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        fontSize: '0.8rem',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '6px',
+                        color: 'white'
+                      }}
+                    >
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                    
+                    <select
+                      value={ticketData.assignedTo?._id || ''}
+                      onChange={(e) => handleUpdateTicket({ assignedTo: e.target.value || null })}
+                      disabled={updating}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        fontSize: '0.8rem',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '6px',
+                        color: 'white'
+                      }}
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableUsers.map(assignUser => (
+                        <option key={assignUser._id} value={assignUser._id}>
+                          {assignUser.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {updating && (
+                    <p style={{ color: '#60a5fa', fontSize: '0.8rem', textAlign: 'center' }}>
+                      Updating...
+                    </p>
+                  )}
+                </div>
+              )}
               
               {/* Delete Button for Ticket Details */}
               <div style={{ marginTop: '1rem' }}>

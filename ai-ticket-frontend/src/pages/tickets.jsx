@@ -150,7 +150,7 @@ export default function TicketsDashboard() {
         position: 'relative',
         zIndex: 10,
         height: '100vh',
-        overflow: 'hidden',
+        overflow: 'visible',
         padding: '0.75rem'
       }}>
         {/* Ultra Compact Header */}
@@ -295,7 +295,7 @@ export default function TicketsDashboard() {
           padding: '0.75rem',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
           height: 'calc(100vh - 180px)',
-          overflow: 'hidden',
+          overflow: 'visible',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -373,7 +373,10 @@ export default function TicketsDashboard() {
               gap: '0.375rem',
               overflowY: 'auto',
               flex: 1,
-              paddingRight: '0.25rem'
+              paddingRight: '1rem',
+              paddingBottom: '2.5rem',
+              scrollbarGutter: 'stable both-edges',
+              scrollPaddingBottom: '2.5rem'
             }}>
               {tickets.map((ticket) => (
                 <Link
@@ -392,14 +395,16 @@ export default function TicketsDashboard() {
                     cursor: 'pointer'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.transform = 'translateY(-1px)';
-                    e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+                    const el = e.currentTarget;
+                    el.style.background = 'rgba(255, 255, 255, 0.1)';
+                    el.style.transform = 'translateY(-1px)';
+                    el.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.05)';
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = 'none';
+                    const el = e.currentTarget;
+                    el.style.background = 'rgba(255, 255, 255, 0.05)';
+                    el.style.transform = 'translateY(0)';
+                    el.style.boxShadow = 'none';
                   }}
                 >
                   <div style={{

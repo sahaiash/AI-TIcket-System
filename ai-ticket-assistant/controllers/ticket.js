@@ -140,6 +140,54 @@ export const getTicket = async (req, res) => {
   }
 };
 
+export const updateTicket = async (req, res) => {
+  try {
+    const user = req.user;
+    const ticketId = req.params.id;
+    const { status, assignedTo, priority } = req.body;
+    
+    console.log("Update request from user:", user._id, "for ticket:", ticketId);
+    console.log("Update data:", { status, assignedTo, priority });
+    
+    // Check permissions - only moderators and admins can update tickets
+    if (user.role === "user") {
+      return res.status(403).json({ 
+        message: "Only moderators and admins can update tickets" 
+      });
+    }
+    
+    // Find the ticket
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+    
+    // Build update object
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
+    if (priority !== undefined) updateData.priority = priority;
+    
+    // Update the ticket
+    const updatedTicket = await Ticket.findByIdAndUpdate(
+      ticketId,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("assignedTo", ["email", "_id"]).populate("createdBy", ["email", "_id"]);
+    
+    console.log("Ticket updated successfully:", ticketId);
+    
+    return res.status(200).json({ 
+      message: "Ticket updated successfully",
+      ticket: updatedTicket
+    });
+    
+  } catch (error) {
+    console.error("Error updating ticket:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 export const deleteTicket = async (req, res) => {
   try {
     const user = req.user;
